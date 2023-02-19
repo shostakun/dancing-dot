@@ -4,7 +4,7 @@
     ".write": false,
 
     "dot": {
-      ".write": true,
+      ".write": "data.child('client').val() === '' || newData.child('client').val() === '' || data.child('client').val() === newData.child('client').val()",
       ".validate": "newData.hasChildren(['client', 'position'])",
 
       "client": {
