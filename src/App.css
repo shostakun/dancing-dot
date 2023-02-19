@@ -1,6 +1,8 @@
+html,
+body,
 .App {
   text-align: center;
-  background-color: #322733;
+  background-color: #2b272b;
   position: absolute;
   height: 100vh;
   width: 100vw;
