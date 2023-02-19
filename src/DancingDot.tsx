@@ -1,5 +1,4 @@
-import React, { useEffect } from 'react';
-import { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 import { Position, useSyncedPosition } from './SyncedPositionProvider';
 
@@ -19,7 +18,7 @@ const clamp = (n: number, min: number, max: number): number => {
 interface ClientPosition {
   clientX: number,
   clientY: number
-};
+}
 
 
 /** Calculate offsets from a position and Event. */
@@ -53,7 +52,7 @@ export type DancingDotProps = {
 /**
  * Component showing a draggable dot in the browser viewport.
  */
-export default function DancingDot({ radius=5 }) {
+export default function DancingDot({ radius=5 }: DancingDotProps) {
   // Position of the center of the dot as a percentage of the viewport.
   const [{ status, position }, dispatch] = useSyncedPosition();
   

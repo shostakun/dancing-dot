@@ -1,3 +1,5 @@
+import React from 'react';
+
 import DancingDot from './DancingDot.tsx';
 
 import './App.css';
