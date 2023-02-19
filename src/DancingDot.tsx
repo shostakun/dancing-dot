@@ -31,15 +31,14 @@ export type DancingDotProps = {
 export default function DancingDot({ radius=5 }) {
   // Position of the center of the dot as a percentage of the viewport.
   const [{ status, position }, dispatch] = useSyncedPosition();
-  // Whether or not the dot is being dragged in the local browser.
-  const localDrag = status === 'localControl';
+  
   // The difference between the dot and mouse positions.
   const offsets = useRef({ x: 0, y: 0 });
 
   // Update the position when the dot is dragged.
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!localDrag)
+      if (status !== 'localControl')
         return;
 
       const position = {
@@ -53,9 +52,14 @@ export default function DancingDot({ radius=5 }) {
     document.addEventListener('mousemove', handleMouseMove);
     return () =>
       document.removeEventListener('mousemove', handleMouseMove);
-  }, [dispatch, localDrag])
+  }, [dispatch, status])
 
-  const classes = 'dancing-dot' + (localDrag ? ' local-drag' : '');
+  let classes = 'dancing-dot';
+  if (status === 'localControl') {
+    classes += ' local-drag'
+  } else if (status === 'remoteControl') {
+    classes += ' remote-drag'
+  }
 
   // Convert the center position to CSS left and top.
   const styles = {
@@ -66,6 +70,7 @@ export default function DancingDot({ radius=5 }) {
   };
 
   return (
+    // TODO: don't render the dot (0 opacity) until data is retrieved from the db...
     <div className={classes} style={styles}
       // Begin the drag: update the offsets and drag status.
       onMouseDown={e => {

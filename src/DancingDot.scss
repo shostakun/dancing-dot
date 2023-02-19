@@ -15,6 +15,11 @@ $dotBorderColor: #f4f1e3;
   // Style for the dot while it's being dragged locally.
   &.local-drag {
     background-color: darken($dotColor, 15%);
-    border: 2px solid darken($dotBorderColor, 15%);
+    border-color: darken($dotBorderColor, 15%);
+  }
+
+  // Style for the dot while it's being dragged remotely.
+  &.remote-drag {
+    background-color: complement($dotColor);
   }
 }
