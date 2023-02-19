@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
+
+import { useSyncedPosition } from './SyncedPositionProvider';
 
 import './DancingDot.scss';
 
@@ -13,14 +15,24 @@ const clamp = (n: number, min: number, max: number): number => {
 }
 
 
+/** Props for the DancingDot component. */
+export type DancingDotProps = {
+  /**
+   * The radius of the dot
+   * as a percentage of the smaller viewport dimension (vmin).
+   */
+  radius?: number
+}
+
+
 /**
  * Component showing a draggable dot in the browser viewport.
  */
 export default function DancingDot({ radius=5 }) {
-  // Whether or not the dot is being dragged in the local browser.
-  const [localDrag, setLocalDrag] = useState(false);
   // Position of the center of the dot as a percentage of the viewport.
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [{ status, position }, dispatch] = useSyncedPosition();
+  // Whether or not the dot is being dragged in the local browser.
+  const localDrag = status === 'localControl';
   // The difference between the dot and mouse positions.
   const offsets = useRef({ x: 0, y: 0 });
 
@@ -30,19 +42,18 @@ export default function DancingDot({ radius=5 }) {
       if (!localDrag)
         return;
 
-      const newPos = {
+      const position = {
         x: clamp(100 * e.clientX / window.innerWidth + offsets.current.x, 0, 100),
         y: clamp(100 * e.clientY / window.innerHeight + offsets.current.y, 0, 100)
       };
-      console.log(newPos);
 
-      setPosition(newPos);
+      dispatch({ type: 'setPosition', position });
     };
 
     document.addEventListener('mousemove', handleMouseMove);
     return () =>
       document.removeEventListener('mousemove', handleMouseMove);
-  }, [localDrag])
+  }, [dispatch, localDrag])
 
   const classes = 'dancing-dot' + (localDrag ? ' local-drag' : '');
 
@@ -56,16 +67,16 @@ export default function DancingDot({ radius=5 }) {
 
   return (
     <div className={classes} style={styles}
-      // Begin the drag: update the offsets and drag flag.
+      // Begin the drag: update the offsets and drag status.
       onMouseDown={e => {
         offsets.current = {
           x: position.x - 100 * e.clientX / window.innerWidth,
           y: position.y - 100 * e.clientY / window.innerHeight
         };
-        setLocalDrag(true);
+        dispatch({ type: 'beginControl' });
       }}
       // End the drag.
-      onMouseUp={() => setLocalDrag(false)}
+      onMouseUp={() => dispatch({ type: 'endControl' })}
     ></div>
   );
 }
