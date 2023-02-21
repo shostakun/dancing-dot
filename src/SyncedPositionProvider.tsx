@@ -1,10 +1,7 @@
 import { useEffect, useReducer } from 'react';
 
-// Import the functions you need from the SDKs you need
 import { initializeApp } from 'firebase/app';
 import { getDatabase, onValue, ref, set } from 'firebase/database';
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
 
 import { v4 as uuidv4 } from 'uuid';
 const client = uuidv4();
@@ -94,13 +91,32 @@ export function useSyncedPosition(
   });
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
     // Get position updates from Firebase.
     const unsubscribe = onValue(dotRef, (snapshot) => {
+      // We got an update, so cancel the last timeout.
+      clearTimeout(timeoutId);
+
       const snap = snapshot.val();
 
       // If the database change is from the current client,
       // don't trigger another update.
       if (snap.client === client) return;
+
+      if (snap.client) {
+        timeoutId = setTimeout(() => {
+          // It's been more than 5 seconds since we last heard from the remote,
+          // so allow local control again.
+          dispatch({
+            type: 'setState',
+            newState: {
+              status: 'idle',
+              position: snap.position
+            }
+          })
+        }, 5000);
+      }
 
       dispatch({
         type: 'setState',
@@ -108,12 +124,15 @@ export function useSyncedPosition(
         // TODO: Assume the data in the db is the correct shape.
         newState: {
           status: snap.client ? 'remoteControl' : 'idle',
-          position: snap.position as Position
+          position: snap.position
         }
       })
     });
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      clearTimeout(timeoutId);
+    };
   }, [dispatch]);
 
   return [{ status, position }, dispatch];
@@ -142,6 +161,7 @@ function syncedPositionReducer(
   if (action.type === 'setPosition' && oldPosition.status === 'localControl') {
     set(dotRef, {
       client,
+      timestamp: Date.now(),
       position: action.position
     });
     return {
@@ -153,6 +173,7 @@ function syncedPositionReducer(
   if (action.type === 'beginControl' && oldPosition.status === 'idle') {
     set(dotRef, {
       client,
+      timestamp: Date.now(),
       position: oldPosition.position
     });
     return {
@@ -164,6 +185,7 @@ function syncedPositionReducer(
   if (action.type === 'endControl' && oldPosition.status === 'localControl') {
     set(dotRef, {
       client: '',
+      timestamp: Date.now(),
       position: oldPosition.position
     });
     return {

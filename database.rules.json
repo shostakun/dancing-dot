@@ -6,11 +6,15 @@
     "dot": {
       // Make sure clients can't interrupt others' drags.
       // This relies on clients being well-behaved when setting client: ''.
-      ".write": "data.child('client').val() === '' || newData.child('client').val() === '' || data.child('client').val() === newData.child('client').val()",
-      ".validate": "newData.hasChildren(['client', 'position'])",
+      ".write": "data.child('client').val() === '' || newData.child('client').val() === '' || data.child('client').val() === newData.child('client').val() || newData.child('timestamp').val() > data.child('timestamp').val() + 5000",
+      ".validate": "newData.hasChildren(['client', 'position', 'timestamp'])",
 
       "client": {
         ".validate": "newData.isString()"
+      },
+
+      "timestamp": {
+        ".validate": "newData.isNumber()"
       },
 
       "position": {
