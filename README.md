@@ -1,70 +1,103 @@
-# Getting Started with Create React App
+# Dancing Dot Documentation
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This project implements a dot that can be dragged around the browser viewport. Its position is synchronized across multiple clients using a Firebase realtime database.
 
-## Available Scripts
+The live demo is at [https://dancing-d-o-t.web.app](https://dancing-d-o-t.web.app).
 
-In the project directory, you can run:
+## Design
+
+The dot is implemented by the `DancingDot` React component located in `src/DancingDot.tsx`. Related styles are located in `src/DancingDot.scss`.
+
+The position is updated in response to mouse events (`mousedown`, `mousemove`, and `mouseup`) or touch events (`touchstart`, `touchmove`, and `touchend`). All positioning is done via CSS in viewport units (`vh`, `vw`, and `vmin`), which allows for arbitrary screen sizes.
+
+Two additional CSS classes, `local-drag` and `remote-drag` are used to indicate when the dot is being dragged locally or remotely, respectively.
+
+### Synchronization
+
+Synchronization is done using a Firebase realtime database. It is implemented as a React custom hook, `useSyncedPositon()`, located in `src/SyncedPosition.tsx`.
+
+Currently, the database is managed locally within the hook, meaning that each `DancingDot` component has its own database listener. If the application were going to contain multiple `DancingDot` components, it would likely be better to use a React context provider to share state across components.
+
+The hook is implemented using `useReducer()`. To manipulate the state, components can `dispatch()` objects of type `SyncedPositionAction` with the following shapes:
+
+1. To begin a drag in response to a `mousedown` or `touchstart`:
+
+        { type: 'beginControl' }
+
+2. To update the position in response to a `mousemove` or `touchmove`:
+
+        {
+          type: 'setPosition',
+          position: {
+            x: 0,
+            y: 100
+          }
+        }
+    
+    Positions are on the range 0–100, inclusive.
+
+3. To end a drag in response to a `mouseup` or `touchend`:
+
+        { type: 'endControl' }
+
+To apply positions received from remote clients, the hook uses an additional action internally:
+
+    {
+      type: 'setState',
+      newState: {
+        status: 'remoteControl', // or 'idle'
+        position: {
+          x: 0,
+          y: 100
+        }
+      }
+    }
+
+### Database Access
+
+Clients can write to the database in the following circumstances:
+
+- No other client is currently dragging the dot. (The status is `'idle'`.)
+- You are the current client. (The status is `'localControl'`.)
+- The current client has gone idle mid-drag for more than 5 seconds. (The status will be returned to `'idle'`.)
+
+The timeout has been implemented because there are several ways a drag could go uncompleted: the client is disconnected from the database, their browser crashes, or they simply move out of their browser window before releasing the mouse.
+
+These conditions are implemented in `useSyncedPosition()` as well as Firebase rules located in `database.rules.json`. In particular, attempts to control the dot while another client is controlling it remotely are rejected both in the hook and in the database.
+
+## Commands
+
+### Development
+
+The following commands are available in the project directory.
+
+To set up your development environment, do:
+
+### `npm install`
+
+To run the development server on [http://localhost:3000](http://localhost:3000) with live reloading, do:
 
 ### `npm start`
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
-
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+There is also an E2E test suite using Jest and Puppeteer. To run the test suite, do:
 
 ### `npm test`
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
-
-### `npm run build`
-
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+The tests will be automatically rerun as you make code changes. Note that the tests are currently run against the production database (😱)
 
 ### Deployment
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+First make sure you have `firebase-tools` installed and you are logged in with e.g.:
 
-### `npm run build` fails to minify
+### `npm install -g firebase-tools`
+### `firebase login`
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Then you can run:
+
+### `npm run deploy`
+
+in the project directory. This will do a production build and push it to Firebase.
+
+To make a production build without deploying, do:
+
+### `npm run build`

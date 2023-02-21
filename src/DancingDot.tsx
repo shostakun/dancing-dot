@@ -63,6 +63,7 @@ export default function DancingDot({ radius=5 }: DancingDotProps) {
   const touchId = useRef(null);
 
   // Update the position when the dot is dragged with the mouse.
+  // This is attached to the document to account for lag.
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (touchId.current || status !== 'localControl')
