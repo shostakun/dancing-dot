@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 
-import { Position, useSyncedPosition } from './SyncedPositionProvider';
+import { Position, useSyncedPosition } from './SyncedPosition';
 
 import './DancingDot.scss';
 

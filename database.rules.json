@@ -14,7 +14,7 @@
       },
 
       "timestamp": {
-        ".validate": "newData.isNumber()"
+        ".validate": "newData.val() <= now"
       },
 
       "position": {

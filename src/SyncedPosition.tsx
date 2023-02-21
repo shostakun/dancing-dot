@@ -1,7 +1,7 @@
 import { useEffect, useReducer } from 'react';
 
 import { initializeApp } from 'firebase/app';
-import { getDatabase, onValue, ref, set } from 'firebase/database';
+import { getDatabase, onValue, ref, serverTimestamp, set } from 'firebase/database';
 
 import { v4 as uuidv4 } from 'uuid';
 const client = uuidv4();
@@ -22,19 +22,6 @@ const firebaseConfig = {
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getDatabase(firebaseApp);
 const dotRef = ref(db, 'dot');
-
-
-/**
- * Provide a synchronized position.
- * 
- * A context provider is overkill in this example because the data is only
- * accessed in one place in the element tree. However, we can assume in a
- * real app it'd be used more than one place. It also gives us a convenient
- * place to cache the data without resorting to a module-level variable.
- */
-export function SyncedPositionProvider() {
-  return null;
-}
 
 
 /** A 2D coordinate. */
@@ -161,7 +148,7 @@ function syncedPositionReducer(
   if (action.type === 'setPosition' && oldPosition.status === 'localControl') {
     set(dotRef, {
       client,
-      timestamp: Date.now(),
+      timestamp: serverTimestamp(),
       position: action.position
     });
     return {
@@ -173,7 +160,7 @@ function syncedPositionReducer(
   if (action.type === 'beginControl' && oldPosition.status === 'idle') {
     set(dotRef, {
       client,
-      timestamp: Date.now(),
+      timestamp: serverTimestamp(),
       position: oldPosition.position
     });
     return {
@@ -185,7 +172,7 @@ function syncedPositionReducer(
   if (action.type === 'endControl' && oldPosition.status === 'localControl') {
     set(dotRef, {
       client: '',
-      timestamp: Date.now(),
+      timestamp: serverTimestamp(),
       position: oldPosition.position
     });
     return {
