@@ -6,6 +6,35 @@
     "dot": {
       // Make sure clients can't interrupt others' drags.
       // This relies on clients being well-behaved when setting client: ''.
+      // It would be better to have separate client and status fields,
+      // so only the current client could reset to idle (unless it timed out).
+      // This will do for now, though.
+      ".write": "data.child('client').val() === '' || newData.child('client').val() === '' || data.child('client').val() === newData.child('client').val() || newData.child('timestamp').val() > data.child('timestamp').val() + 5000",
+      ".validate": "newData.hasChildren(['client', 'position', 'timestamp'])",
+
+      "client": {
+        ".validate": "newData.isString()"
+      },
+
+      "timestamp": {
+        ".validate": "newData.val() <= now"
+      },
+
+      "position": {
+        ".validate": "newData.hasChildren(['x', 'y'])",
+
+        "x": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100"
+        },
+
+        "y": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100"
+        }
+      }
+    },
+
+    "dotTest": {
+      // See above.
       ".write": "data.child('client').val() === '' || newData.child('client').val() === '' || data.child('client').val() === newData.child('client').val() || newData.child('timestamp').val() > data.child('timestamp').val() + 5000",
       ".validate": "newData.hasChildren(['client', 'position', 'timestamp'])",
 

@@ -60,13 +60,15 @@ export default function DancingDot({ radius=5 }: DancingDotProps) {
   const offsets = useRef({ x: 0, y: 0 });
 
   // The ID of the Touch object we're tracking.
+  // It's possible for a Touch.identifier to be 0 (e.g. from puppeteer)
+  // so use null to mean no touch is currently being tracked.
   const touchId = useRef(null);
 
   // Update the position when the dot is dragged with the mouse.
   // This is attached to the document to account for lag.
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (touchId.current || status !== 'localControl')
+      if (touchId.current !== null || status !== 'localControl')
         return;
       const position = calcPosition(offsets.current, e);
       dispatch({ type: 'setPosition', position });
@@ -99,23 +101,21 @@ export default function DancingDot({ radius=5 }: DancingDotProps) {
     <div className={classes} style={styles} role='main'
       // Begin a mouse drag: update the offsets and drag status.
       onMouseDown={e => {
-        if (touchId.current || status !== 'idle') return;
+        if (touchId.current !== null || status !== 'idle') return;
         offsets.current = calcOffsets(position, e);
         dispatch({ type: 'beginControl' });
       }}
 
       // End a mouse drag.
       onMouseUp={() => {
-        if (touchId.current || status !== 'localControl') return;
+        if (touchId.current !== null || status !== 'localControl') return;
         dispatch({ type: 'endControl' });
       }}
 
       // Start a touch drag: update the offsets and drag status,
       // as well as the ID of the specific touch we're tracking.
       onTouchStart={e => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (touchId.current || status !== 'idle') return;
+        if (touchId.current !== null || status !== 'idle') return;
         const touch = e.targetTouches.item(0);
         if (!touch) return;
         touchId.current = touch.identifier;
@@ -125,9 +125,7 @@ export default function DancingDot({ radius=5 }: DancingDotProps) {
 
       // Update the position when the dot is dragged by the tracked touch.
       onTouchMove={e => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (!touchId.current || status !== 'localControl') return;
+        if (touchId.current === null || status !== 'localControl') return;
         const touches = Array.prototype.filter.call(e.targetTouches,
           (t: React.Touch) => t.identifier === touchId.current);
         if (touches.length < 1) return;
@@ -137,9 +135,7 @@ export default function DancingDot({ radius=5 }: DancingDotProps) {
 
       // End a touch drag if the tracked touch is no longer present.
       onTouchEnd={e => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (!touchId.current || status !== 'localControl') return;
+        if (touchId.current === null || status !== 'localControl') return;
         const touches = Array.prototype.filter.call(e.targetTouches,
           (t: React.Touch) => t.identifier === touchId.current);
         if (touches.length > 0) return;

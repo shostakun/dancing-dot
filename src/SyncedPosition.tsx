@@ -21,7 +21,8 @@ const firebaseConfig = {
 // Initialize Firebase
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getDatabase(firebaseApp);
-const dotRef = ref(db, 'dot');
+const dotRef = ref(db,
+  window.location.search.includes('db=test') ? 'dotTest' : 'dot');
 
 
 /** A 2D coordinate. */

@@ -79,11 +79,11 @@ To run the development server on [http://localhost:3000](http://localhost:3000) 
 
 ### `npm start`
 
-There is also an E2E test suite using Jest and Puppeteer. To run the test suite, do:
+There is also a (slow) E2E test suite using Jest and Puppeteer. To run the test suite, do:
 
 ### `npm test`
 
-The tests will be automatically rerun as you make code changes. Note that the tests are currently run against the production database (😱)
+The tests will be automatically rerun as you make code changes. The dev server must be running on port 3000 for the tests to run. Note that the tests are currently run against a test path in the database, `dotTest`, rather than the production `dot`.
 
 ### Deployment
 
