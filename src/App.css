@@ -9,3 +9,17 @@ body,
   /* Avoid unwanted scrolling when using touch input. */
   overflow: hidden;
 }
+
+.instructions {
+  position: absolute;
+  right: 1em;
+  top: 1em;
+  padding: 1em;
+  z-index: 50;
+  text-align: left;
+  color: #f4f1e3;
+}
+
+a:any-link {
+  color: #8dc9bf;
+}
