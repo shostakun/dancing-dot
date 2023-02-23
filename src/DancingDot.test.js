@@ -115,6 +115,8 @@ it('renders an element', async () => {
   expect(dotA).toBeTruthy();
   expect(await pollUntilTrue(async () =>
     _.isEqual(await dotA.boundingBox(), startBoundingBox))).toBeTruthy();
+
+  await pageA.close();
 });
 
 
@@ -128,6 +130,8 @@ it('can be dragged with the mouse', async () => {
   const endBoundingBox = await dragBy(pageA, startBoundingBox, 50, 50);
   expect(await pollUntilTrue(async () =>
     _.isEqual(await dotA.boundingBox(), endBoundingBox))).toBeTruthy();
+
+  await pageA.close();
 });
 
 
@@ -152,6 +156,8 @@ it('can be dragged by touch', async () => {
   // Make sure the position has changed.
   expect(await pollUntilTrue(async () => 
     _.isEqual(await dotA.boundingBox(), endBoundingBox))).toBeTruthy();
+
+  await pageA.close();
 });
 
 
@@ -180,6 +186,32 @@ it('synchronizes across two browser windows', async () => {
     _.isEqual(await dotB.boundingBox(), endBoundingBox))).toBeTruthy();
   expect(await pollUntilTrue(async () =>
     _.isEqual(await dotA.boundingBox(), endBoundingBox))).toBeTruthy();
+
+  await pageA.close();
+  await pageB.close();
+});
+
+
+it('picks up the initial position', async () => {
+  // Get the first page.
+  const pageA = await getPage();
+  const dotA = await pageA.$('.dancing-dot');
+  expect(await pollUntilTrue(async () =>
+    _.isEqual(await dotA.boundingBox(), startBoundingBox))).toBeTruthy();
+
+  // Drag on pageA, and test the result.
+  let endBoundingBox = await dragBy(pageA, startBoundingBox, 50, 50);
+  expect(await pollUntilTrue(async () =>
+    _.isEqual(await dotA.boundingBox(), endBoundingBox))).toBeTruthy();
+
+  // Get a new page, and make sure it picks up the position from the first drag.
+  const pageB = await getPage();
+  const dotB = await pageB.$('.dancing-dot');
+  expect(await pollUntilTrue(async () =>
+    _.isEqual(await dotB.boundingBox(), endBoundingBox))).toBeTruthy();
+
+  await pageA.close();
+  await pageB.close();
 });
 
 
@@ -222,4 +254,7 @@ it('cannot be dragged during remote control', async () => {
     _.isEqual(await dotB.boundingBox(), endBoundingBox))).toBeTruthy();
   expect(await pollUntilTrue(async () =>
     _.isEqual(await dotA.boundingBox(), endBoundingBox))).toBeTruthy();
+
+  await pageA.close();
+  await pageB.close();
 }, 11000);
