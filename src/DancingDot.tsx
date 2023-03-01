@@ -101,7 +101,7 @@ export default function DancingDot({ radius=5 }: DancingDotProps) {
     <div className={classes} style={styles} role='main'
       // Begin a mouse drag: update the offsets and drag status.
       onMouseDown={e => {
-        if (touchId.current !== null || status !== 'idle') return;
+        if (touchId.current !== null || !status.startsWith('idle')) return;
         offsets.current = calcOffsets(position, e);
         dispatch({ type: 'beginControl' });
       }}
@@ -115,7 +115,7 @@ export default function DancingDot({ radius=5 }: DancingDotProps) {
       // Start a touch drag: update the offsets and drag status,
       // as well as the ID of the specific touch we're tracking.
       onTouchStart={e => {
-        if (touchId.current !== null || status !== 'idle') return;
+        if (touchId.current !== null || !status.startsWith('idle')) return;
         const touch = e.targetTouches.item(0);
         if (!touch) return;
         touchId.current = touch.identifier;

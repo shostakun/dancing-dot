@@ -45,7 +45,7 @@ To apply positions received from remote clients, the hook uses an additional act
     {
       type: 'setState',
       newState: {
-        status: 'remoteControl', // or 'idle'
+        status: 'remoteControl', // or 'idleRemote'
         position: {
           x: 0,
           y: 100
@@ -57,9 +57,9 @@ To apply positions received from remote clients, the hook uses an additional act
 
 Clients can write to the database in the following circumstances:
 
-- No other client is currently dragging the dot. (The status is `'idle'`.)
+- No other client is currently dragging the dot. (The status is `'idleLocal'` or `'idleRemote'`.)
 - You are the current client. (The status is `'localControl'`.)
-- The current client has gone idle mid-drag for more than 5 seconds. (The status will be returned to `'idle'`.)
+- The current client has gone idle mid-drag for more than 5 seconds. (The status will be returned to `'idleRemote'`.)
 
 The timeout has been implemented because there are several ways a drag could go uncompleted: the client is disconnected from the database, their browser crashes, or they simply move out of their browser window before releasing the mouse.
 

@@ -34,7 +34,7 @@ export type Position = {
 
 /** The control status and position. */
 export type SyncedPosition = {
-  status: 'idle' | 'localControl' | 'remoteControl',
+  status: 'idleLocal' | 'idleRemote' | 'localControl' | 'remoteControl',
   /** The position as a percentage of the viewport. */
   position: Position
 };
@@ -74,9 +74,25 @@ export type SyncedPositionAction =
 export function useSyncedPosition(
 ): [SyncedPosition, (action: SyncedPositionAction) => void] {
   const [{ status, position }, dispatch] = useReducer(syncedPositionReducer, {
-    status: 'idle',
+    status: 'idleRemote',
     position: { x: 0, y: 0 }
   });
+
+  useEffect(() => {
+    if (status === 'localControl') {
+      set(dotRef, {
+        client,
+        position,
+        timestamp: serverTimestamp()
+      });
+    } else if (status === 'idleLocal') {
+      set(dotRef, {
+        client: '',
+        position,
+        timestamp: serverTimestamp()
+      });
+    }
+  }, [position, status]);
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
@@ -99,7 +115,7 @@ export function useSyncedPosition(
           dispatch({
             type: 'setState',
             newState: {
-              status: 'idle',
+              status: 'idleRemote',
               position: snap.position
             }
           })
@@ -111,7 +127,7 @@ export function useSyncedPosition(
         // Firebase DataSnapshots are immutable, so OK to use directly as state.
         // TODO: Assume the data in the db is the correct shape.
         newState: {
-          status: snap.client ? 'remoteControl' : 'idle',
+          status: snap.client ? 'remoteControl' : 'idleRemote',
           position: snap.position
         }
       })
@@ -147,23 +163,13 @@ function syncedPositionReducer(
 
   // Local control is possible.
   if (action.type === 'setPosition' && oldPosition.status === 'localControl') {
-    set(dotRef, {
-      client,
-      timestamp: serverTimestamp(),
-      position: action.position
-    });
     return {
       status: oldPosition.status,
       position: { ...action.position }
     }
   }
 
-  if (action.type === 'beginControl' && oldPosition.status === 'idle') {
-    set(dotRef, {
-      client,
-      timestamp: serverTimestamp(),
-      position: oldPosition.position
-    });
+  if (action.type === 'beginControl' && oldPosition.status.startsWith('idle')) {
     return {
       status: 'localControl',
       position: { ...oldPosition.position }
@@ -171,13 +177,8 @@ function syncedPositionReducer(
   }
 
   if (action.type === 'endControl' && oldPosition.status === 'localControl') {
-    set(dotRef, {
-      client: '',
-      timestamp: serverTimestamp(),
-      position: oldPosition.position
-    });
     return {
-      status: 'idle',
+      status: 'idleLocal',
       position: { ...oldPosition.position }
     }
   }
