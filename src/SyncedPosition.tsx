@@ -22,7 +22,7 @@ const firebaseConfig = {
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getDatabase(firebaseApp);
 const dotRef = ref(db,
-  window.location.search.includes('db=test') ? 'dotTest' : 'dot');
+  window.location.search.includes('db=test') ? 'v2/dotTest' : 'v2/dot');
 
 
 /** A 2D coordinate. */
@@ -83,12 +83,14 @@ export function useSyncedPosition(
       set(dotRef, {
         client,
         position,
+        status: 'controlled',
         timestamp: serverTimestamp()
       });
     } else if (status === 'idleLocal') {
       set(dotRef, {
-        client: '',
+        client,
         position,
+        status: 'idle',
         timestamp: serverTimestamp()
       });
     }
@@ -127,7 +129,7 @@ export function useSyncedPosition(
         // Firebase DataSnapshots are immutable, so OK to use directly as state.
         // TODO: Assume the data in the db is the correct shape.
         newState: {
-          status: snap.client ? 'remoteControl' : 'idleRemote',
+          status: snap.status === 'controlled' ? 'remoteControl' : 'idleRemote',
           position: snap.position
         }
       })

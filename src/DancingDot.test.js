@@ -1,6 +1,6 @@
 import { deleteApp, initializeApp } from 'firebase/app';
-import { getDatabase, ref, serverTimestamp, set } from 'firebase/database';
-import _, { get } from 'lodash';
+import { get, getDatabase, ref, serverTimestamp, set } from 'firebase/database';
+import _ from 'lodash';
 // Note that jest-puppeteer injects browser, page, and context as globals.
 
 
@@ -71,8 +71,28 @@ const dragBy = async (page, from, x, y, leaveHanging=false) => {
 };
 
 
+/** Check if two db data objects are the same, excluding the timestamp. */
+const dbDataIsEqual = (a, b) => {
+  return a.client === b.client &&
+    a.status === b.status &&
+    a.position.x === b.position.x &&
+    a.position.y === b.position.y
+};
+
+
+/** Reference to the test db path.
+ * Set in beforeEach(); reset to null in afterEach().
+*/
+let dotRef = null;
+
+/** Reference to the firebase app.
+ * Set in beforeEach(); deleted and reset to null in afterEach().
+*/
+let firebaseApp = null;
+
+
 /** Put the database in a known state. */
-const resetState = async () => {
+beforeEach(async () => {
   // Your web app's Firebase configuration
   const firebaseConfig = {
     apiKey: 'AIzaSyC_BcVr3HKIhuhB2HDdh806TCj-y7IPocE',
@@ -85,26 +105,39 @@ const resetState = async () => {
   };
 
   // Initialize Firebase
-  const firebaseApp = initializeApp(firebaseConfig);
+  firebaseApp = initializeApp(firebaseConfig);
   const db = getDatabase(firebaseApp);
-  const dotRef = ref(db, 'dotTest');
+  dotRef = ref(db, 'v2/dotTest');
 
   // Set and check the state.
   const initialData = {
-    client: '',
+    client: 'testsuite',
+    status: 'idle',
     timestamp: serverTimestamp(),
     position: { x: 0, y: 0 }
   };
   await set(dotRef, initialData);
-  await pollUntilTrue(async () =>
-    _.isEqual(await get(dotRef), initialData));
+  if (!(await pollUntilTrue(async () =>
+    dbDataIsEqual(await (await get(dotRef)).val(), initialData)))) {
+      throw Error('Failed to set DB to initial data!');
+  }
+});
 
-  // Clean up.
+
+/** Clean up the database references to isolate the tests. */
+afterEach(async () => {
   await deleteApp(firebaseApp);
-};
+  dotRef = null;
+  firebaseApp = null;
+});
 
-beforeEach(resetState);
-afterAll(resetState);
+
+/** Returns true if a client other than the test suite has set the db status to idle. */
+const clientReleasedControl = async () => {
+  const snap = await get(dotRef);
+  const data = await snap.val();
+  return data.status === 'idle' && data.client !== 'testsuite';
+};
 
 
 it('renders an element', async () => {
@@ -131,6 +164,9 @@ it('can be dragged with the mouse', async () => {
   expect(await pollUntilTrue(async () =>
     _.isEqual(await dotA.boundingBox(), endBoundingBox))).toBeTruthy();
 
+  // Make sure the state returns to idle after the drag.
+  expect(await pollUntilTrue(clientReleasedControl)).toBeTruthy();
+
   await pageA.close();
 });
 
@@ -149,13 +185,15 @@ it('can be dragged by touch', async () => {
 
   const touchscreen = pageA.touchscreen;
   await touchscreen.touchStart(0, 0);
-  await new Promise(resolve => setTimeout(resolve, 2000));
   await touchscreen.touchMove(dist, dist);
   await touchscreen.touchEnd();
 
   // Make sure the position has changed.
   expect(await pollUntilTrue(async () => 
     _.isEqual(await dotA.boundingBox(), endBoundingBox))).toBeTruthy();
+
+  // Make sure the state returns to idle after the drag.
+  expect(await pollUntilTrue(clientReleasedControl)).toBeTruthy();
 
   await pageA.close();
 });
@@ -174,18 +212,24 @@ it('synchronizes across two browser windows', async () => {
     _.isEqual(await dotB.boundingBox(), startBoundingBox))).toBeTruthy();
 
   // Drag on pageA, and test the result on both.
-  let endBoundingBox = await dragBy(pageA, startBoundingBox, 50, 50);
+  const midBoundingBox = await dragBy(pageA, startBoundingBox, 50, 50);
   expect(await pollUntilTrue(async () =>
-    _.isEqual(await dotA.boundingBox(), endBoundingBox))).toBeTruthy();
+    _.isEqual(await dotA.boundingBox(), midBoundingBox))).toBeTruthy();
   expect(await pollUntilTrue(async () =>
-    _.isEqual(await dotB.boundingBox(), endBoundingBox))).toBeTruthy();
+    _.isEqual(await dotB.boundingBox(), midBoundingBox))).toBeTruthy();
+
+  // Make sure the state returns to idle after the drag.
+  expect(await pollUntilTrue(clientReleasedControl)).toBeTruthy();
 
   // Drag on pageB, and test the result on both.
-  endBoundingBox = await dragBy(pageB, endBoundingBox, 50, 50);
+  const endBoundingBox = await dragBy(pageB, midBoundingBox, 49, 49);
   expect(await pollUntilTrue(async () =>
     _.isEqual(await dotB.boundingBox(), endBoundingBox))).toBeTruthy();
   expect(await pollUntilTrue(async () =>
     _.isEqual(await dotA.boundingBox(), endBoundingBox))).toBeTruthy();
+
+  // Make sure the state returns to idle after the drag.
+  expect(await pollUntilTrue(clientReleasedControl)).toBeTruthy();
 
   await pageA.close();
   await pageB.close();
@@ -209,6 +253,9 @@ it('picks up the initial position', async () => {
   const dotB = await pageB.$('.dancing-dot');
   expect(await pollUntilTrue(async () =>
     _.isEqual(await dotB.boundingBox(), endBoundingBox))).toBeTruthy();
+
+  // Make sure the state returns to idle after the drag.
+  expect(await pollUntilTrue(clientReleasedControl)).toBeTruthy();
 
   await pageA.close();
   await pageB.close();
@@ -237,7 +284,7 @@ it('cannot be dragged during remote control', async () => {
 
   // Drag on pageB, and test the result on both.
   // Make sure the position DOESN'T change.
-  const endBoundingBox = await dragBy(pageB, midBoundingBox, 50, 50);
+  const endBoundingBox = await dragBy(pageB, midBoundingBox, 49, 49);
   expect(await pollUntilTrue(async () =>
     _.isEqual(await dotB.boundingBox(), endBoundingBox))).toBeFalsy();
   expect(await pollUntilTrue(async () =>
@@ -249,11 +296,14 @@ it('cannot be dragged during remote control', async () => {
   });
 
   // ...and try again.
-  await dragBy(pageB, midBoundingBox, 50, 50);
+  await dragBy(pageB, midBoundingBox, 49, 49);
   expect(await pollUntilTrue(async () =>
     _.isEqual(await dotB.boundingBox(), endBoundingBox))).toBeTruthy();
   expect(await pollUntilTrue(async () =>
     _.isEqual(await dotA.boundingBox(), endBoundingBox))).toBeTruthy();
+
+  // Make sure the state returns to idle after the drag.
+  expect(await pollUntilTrue(clientReleasedControl)).toBeTruthy();
 
   await pageA.close();
   await pageB.close();

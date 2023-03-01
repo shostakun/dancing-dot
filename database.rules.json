@@ -57,6 +57,69 @@
           ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100"
         }
       }
+    },
+
+    "v2": {
+      "dot": {
+        // Make sure clients can't interrupt others' drags.
+        ".write": "data.child('status').val() === 'idle' || data.child('client').val() === newData.child('client').val() || newData.child('timestamp').val() > data.child('timestamp').val() + 5000",
+        ".validate": "newData.hasChildren(['client', 'position', 'status', 'timestamp'])",
+
+        "client": {
+          ".validate": "newData.isString() && newData.val() !== ''"
+        },
+
+        "status": {
+          ".validate": "newData.val() === 'controlled' || newData.val() === 'idle'"
+        },
+
+        "timestamp": {
+          ".validate": "newData.val() <= now"
+        },
+
+        "position": {
+          ".validate": "newData.hasChildren(['x', 'y'])",
+
+          "x": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100"
+          },
+
+          "y": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100"
+          }
+        }
+      },
+
+      "dotTest": {
+        // Make sure clients can't interrupt others' drags,
+        // unless it's the test suite!
+        ".write": "newData.child('client').val() === 'testsuite' || data.child('status').val() === 'idle' || data.child('client').val() === newData.child('client').val() || newData.child('timestamp').val() > data.child('timestamp').val() + 5000",
+        ".validate": "newData.hasChildren(['client', 'position', 'status', 'timestamp'])",
+
+        "client": {
+          ".validate": "newData.isString() && newData.val() !== ''"
+        },
+
+        "status": {
+          ".validate": "newData.val() === 'controlled' || newData.val() === 'idle'"
+        },
+
+        "timestamp": {
+          ".validate": "newData.val() <= now"
+        },
+
+        "position": {
+          ".validate": "newData.hasChildren(['x', 'y'])",
+
+          "x": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100"
+          },
+
+          "y": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100"
+          }
+        }
+      }
     }
   }
 }
